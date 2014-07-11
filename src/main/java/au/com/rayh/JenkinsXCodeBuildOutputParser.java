@@ -34,6 +34,8 @@ import hudson.model.TaskListener;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.nio.charset.Charset;
 
 /**
  *
@@ -42,21 +44,38 @@ import java.io.OutputStream;
 public class JenkinsXCodeBuildOutputParser extends XCodeBuildOutputParser {
     protected TaskListener buildListener;
     private FilePath testReportsDir;
+    /**
+     * Use to write output from xcodebuild cmd
+     */
+    private PrintWriter printWriter;
 
-	public JenkinsXCodeBuildOutputParser(FilePath workspace, TaskListener buildListener) throws IOException, InterruptedException {
-		super();
+	public JenkinsXCodeBuildOutputParser(FilePath workspace,
+                                         TaskListener buildListener) throws IOException, InterruptedException {
+		this(workspace, buildListener, false);
+    }
+
+    public JenkinsXCodeBuildOutputParser(FilePath workspace,
+                                         TaskListener buildListener,
+                                         boolean hasToSaveOutput) throws IOException, InterruptedException {
+        super();
         this.buildListener = buildListener;
-        this.captureOutputStream = new LineBasedFilterOutputStream();
+        this.captureOutputStream = new LineBasedFilterOutputStream(hasToSaveOutput);
 
         testReportsDir = workspace.child("test-reports");
         testReportsDir.mkdirs();
+        if (hasToSaveOutput) {
+            FilePath rawOutput = workspace.child("xcodebuild.log");
+            printWriter = new PrintWriter(rawOutput.write());
+        }
     }
 
-    public class LineBasedFilterOutputStream extends FilterOutputStream {
+    private class LineBasedFilterOutputStream extends FilterOutputStream {
         StringBuilder buffer = new StringBuilder();
+        private Boolean hasToSaveOutput;
 
-        public LineBasedFilterOutputStream() {
+        public LineBasedFilterOutputStream(Boolean hasToSaveOutput) {
             super(buildListener.getLogger());
+            this.hasToSaveOutput = hasToSaveOutput;
         }
 
         @Override
@@ -65,6 +84,9 @@ public class JenkinsXCodeBuildOutputParser extends XCodeBuildOutputParser {
             if((char)b == '\n') {
                 try {
                     handleLine(buffer.toString());
+                    if (hasToSaveOutput) {
+                        writeRawLine(buffer.toString());
+                    }
                     buffer = new StringBuilder();
                 } catch(Exception e) {  // Very fugly
                     buildListener.fatalError(e.getMessage(), e);
@@ -74,6 +96,21 @@ public class JenkinsXCodeBuildOutputParser extends XCodeBuildOutputParser {
                 buffer.append((char)b);
             }
         }
+
+        @Override
+        public void close() throws IOException {
+            super.close();
+            closeRawPrinter();
+        }
+    }
+
+    private void writeRawLine(String line) throws IOException, InterruptedException {
+        printWriter.write(line);
+        printWriter.write("\n");
+    }
+
+    private void closeRawPrinter() {
+        printWriter.close();
     }
 
 	@Override

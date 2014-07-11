@@ -196,7 +196,12 @@
 		         description="The value to use for CONFIGURATION_BUILD_DIR setting.">
 		           <f:textbox/>
 		    </f:entry>
-		    
+
+		    <f:entry title="${%Save xcode raw output}" field="saveXcodeRawOutput"
+            		         description="Save the standard output coming from xcode.">
+                   <f:checkbox title="Yes" name="xcode.saveXcodeRawOutput" checked="${instance.saveXcodeRawOutput}" />
+            </f:entry>
+
 		</f:advanced>
 
 	</f:section>

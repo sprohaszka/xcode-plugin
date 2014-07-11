@@ -172,6 +172,8 @@ public class XCodeBuilder extends Builder {
      */
     public final String bundleIDInfoPlistPath;
 
+    public final Boolean saveXcodeRawOutput;
+
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
     public XCodeBuilder(Boolean buildIpa, Boolean generateArchive, Boolean cleanBeforeBuild, Boolean cleanTestReports, String configuration,
@@ -180,7 +182,7 @@ public class XCodeBuilder extends Builder {
     		String keychainName, String keychainPath, String keychainPwd, String symRoot, String xcodeWorkspaceFile,
     		String xcodeSchema, String configurationBuildDir, String codeSigningIdentity, Boolean allowFailingBuildResults,
     		String ipaName, Boolean provideApplicationVersion, String ipaOutputDirectory, Boolean changeBundleID, String bundleID, 
-    		String bundleIDInfoPlistPath) {
+    		String bundleIDInfoPlistPath, Boolean saveXcodeRawOutput) {
         this.buildIpa = buildIpa;
         this.generateArchive = generateArchive;
         this.sdk = sdk;
@@ -210,6 +212,7 @@ public class XCodeBuilder extends Builder {
         this.changeBundleID = changeBundleID;
         this.bundleID = bundleID;
         this.bundleIDInfoPlistPath = bundleIDInfoPlistPath;
+        this.saveXcodeRawOutput = saveXcodeRawOutput;
     }
 
     @Override
@@ -463,7 +466,8 @@ public class XCodeBuilder extends Builder {
 
         // Build
         StringBuilder xcodeReport = new StringBuilder(Messages.XCodeBuilder_invokeXcodebuild());
-        XCodeBuildOutputParser reportGenerator = new JenkinsXCodeBuildOutputParser(projectRoot, listener);
+        XCodeBuildOutputParser reportGenerator = new JenkinsXCodeBuildOutputParser(projectRoot, listener, saveXcodeRawOutput);
+        xcodeReport.append("Raw output: ").append(saveXcodeRawOutput?"activated":"deactivated");
         List<String> commandLine = Lists.newArrayList(getGlobalConfiguration().getXcodebuildPath());
 
         // Prioritizing schema over target setting
